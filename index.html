@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Tikus Wirog - TKA Biologi Keanekaragaman Hayati</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #122102;
+      color: #fff;
+    }
+
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.5s ease;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .custom-cursor {
+      cursor: none;
+    }
+
+    /* PALU VIRTUAL (CURSOR) */
+    #hammer {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-20%, -80%) rotate(-15deg);
+      transition: transform 0.05s ease;
+      filter: drop-shadow(4px 8px 5px rgba(0,0,0,0.6));
+    }
+
+    #hammer.slap {
+      transform: translate(-20%, -80%) rotate(-65deg);
+    }
+
+    /* START SCREEN */
+    #start-screen {
+      background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), 
+                  radial-gradient(circle, #2e7d32 0%, #0d3810 100%);
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      color: #2e7d32;
+      padding: 30px 40px;
+      border-radius: 25px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      width: 90%;
+      max-width: 480px;
+      text-align: center;
+      border: 4px solid #81c784;
+    }
+
+    .card h1 {
+      font-size: 2.2rem;
+      color: #1b5e20;
+      margin-bottom: 5px;
+      text-shadow: 2px 2px 0px #a5d6a7;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #333;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #a5d6a7;
+      border-radius: 10px;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: #43a047;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      box-shadow: 0 5px 0 #1b5e20;
+      transition: all 0.1s;
+    }
+
+    .btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #1b5e20;
+    }
+
+    .btn-secondary {
+      background: #0288d1;
+      box-shadow: 0 5px 0 #01579b;
+    }
+
+    /* KEBUN UBI JALAR LAYOUT */
+    #game-screen {
+      background: radial-gradient(circle at center, #3e2723 0%, #1e120a 60%, #0d0603 100%);
+      position: relative;
+    }
+
+    .hud {
+      position: absolute;
+      top: 15px;
+      width: 90%;
+      max-width: 900px;
+      display: flex;
+      justify-content: space-between;
+      z-index: 10;
+    }
+
+    .hud-box {
+      background: rgba(20, 50, 15, 0.92);
+      border: 3px solid #81c784;
+      padding: 10px 18px;
+      border-radius: 15px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+    }
+
+    /* LUBANG TANAH */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-gap: 30px;
+      width: 90%;
+      max-width: 880px;
+      margin-top: 120px;
+      z-index: 5;
+    }
+
+    .hole-container {
+      position: relative;
+      width: 100%;
+      padding-top: 72%;
+      background: radial-gradient(ellipse at center, #0a0401 0%, #1c0e05 60%, #3e2311 100%);
+      border-radius: 50% / 40%;
+      border: 7px solid #231207;
+      box-shadow: inset 0 20px 30px rgba(0,0,0,0.98), 0 10px 0 #120702;
+      overflow: hidden;
+    }
+
+    .sweet-potato-overlay {
+      position: absolute;
+      bottom: -10px;
+      left: -10%;
+      width: 120%;
+      height: 55px;
+      pointer-events: none !important;
+      z-index: 6;
+    }
+
+    /* KARAKTER TIKUS & ULAR */
+    .character {
+      position: absolute;
+      bottom: -110%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      height: 90%;
+      transition: bottom 0.18s ease-out;
+      cursor: none;
+      z-index: 5;
+    }
+
+    .character.up {
+      bottom: 8%;
+    }
+
+    .svg-char {
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      filter: drop-shadow(0 6px 6px rgba(0,0,0,0.6));
+    }
+
+    /* MODAL POPUP */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.88);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+
+    .modal-content {
+      background: white;
+      color: #333;
+      padding: 30px;
+      border-radius: 20px;
+      max-width: 700px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .quiz-options {
+      margin-top: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .option-btn {
+      padding: 12px;
+      border: 2px solid #2e7d32;
+      background: #f1f8e9;
+      border-radius: 10px;
+      text-align: left;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-weight: bold;
+      color: #1b5e20;
+    }
+
+    .option-btn:hover { background: #c8e6c9; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #2e7d32; color: white; }
+  </style>
+</head>
+<body>
+
+  <!-- PALU VIRTUAL -->
+  <svg id="hammer" width="80" height="80" viewBox="0 0 100 100">
+    <rect x="42" y="35" width="16" height="60" rx="5" fill="#8d6e63" stroke="#3e2723" stroke-width="3"/>
+    <rect x="12" y="10" width="76" height="32" rx="8" fill="#424242" stroke="#212121" stroke-width="3"/>
+    <rect x="18" y="14" width="64" height="10" rx="3" fill="#757575"/>
+  </svg>
+
+  <!-- 1. START SCREEN -->
+  <div id="start-screen" class="screen">
+    <div class="card">
+      <h1>TIKUS WIROG</h1>
+      <p style="margin-bottom: 20px; color: #555; font-weight: bold;">Game Kebun Ubi Jalar - TKA Biologi SMA</p>
+      
+      <div class="form-group">
+        <label>Nama Siswa:</label>
+        <input type="text" id="player-name" placeholder="Masukkan nama" required>
+      </div>
+      
+      <div class="form-group">
+        <label>Kelas:</label>
+        <input type="text" id="player-class" placeholder="Contoh: XII MIPA 1" required>
+      </div>
+
+      <button class="btn" onclick="startGame()">Mulai Permainan 🍠</button>
+      <button class="btn btn-secondary" onclick="showLeaderboard()">🏆 Papan Skor</button>
+    </div>
+  </div>
+
+  <!-- 2. GAME SCREEN -->
+  <div id="game-screen" class="screen hidden custom-cursor">
+    
+    <div class="hud">
+      <div class="hud-box">🏆 Skor: <span id="score-text" style="color:#ffeb3b">0</span></div>
+      <div class="hud-box">⏱️ Waktu: <span id="timer-text" style="color:#64b5f6">0s</span></div>
+      <div class="hud-box">🐀 Tikus: <span id="rat-count-text" style="color:#ff5252">3</span></div>
+      <div class="hud-box">❤️ Nyawa: <span id="lives-text" style="color:#ff1744">❤️❤️❤️</span></div>
+    </div>
+
+    <div class="grid">
+      <div class="hole-container" id="container-0">
+        <div class="character" id="hole-0"></div>
+        <svg class="sweet-potato-overlay" viewBox="0 0 120 50"><ellipse cx="25" cy="38" rx="18" ry="9" fill="#6a1b9a"/><path d="M5,42 Q30,20 60,35 T115,28" stroke="#4caf50" stroke-width="4" fill="none"/></svg>
+      </div>
+      <div class="hole-container" id="container-1">
+        <div class="character" id="hole-1"></div>
+        <svg class="sweet-potato-overlay" viewBox="0 0 120 50"><ellipse cx="98" cy="35" rx="16" ry="8" fill="#4a148c"/><path d="M0,40 Q40,15 80,38 T120,22" stroke="#388e3c" stroke-width="5" fill="none"/></svg>
+      </div>
+      <div class="hole-container" id="container-2">
+        <div class="character" id="hole-2"></div>
+        <svg class="sweet-potato-overlay" viewBox="0 0 120 50"><ellipse cx="30" cy="36" rx="17" ry="8" fill="#8e24aa"/><path d="M10,35 Q50,22 90,32 T115,30" stroke="#4caf50" stroke-width="4" fill="none"/></svg>
+      </div>
+      <div class="hole-container" id="container-3">
+        <div class="character" id="hole-3"></div>
+        <svg class="sweet-potato-overlay" viewBox="0 0 120 50"><ellipse cx="22" cy="36" rx="16" ry="8" fill="#4a148c"/><path d="M5,38 Q45,18 75,35 T118,25" stroke="#2e7d32" stroke-width="4.5" fill="none"/></svg>
+      </div>
+      <div class="hole-container" id="container-4">
+        <div class="character" id="hole-4"></div>
+        <svg class="sweet-potato-overlay" viewBox="0 0 120 50"><ellipse cx="95" cy="35" rx="18" ry="9" fill="#8e24aa"/><path d="M8,42 Q35,20 70,36 T112,28" stroke="#4caf50" stroke-width="4" fill="none"/></svg>
+      </div>
+      <div class="hole-container" id="container-5">
+        <div class="character" id="hole-5"></div>
+        <svg class="sweet-potato-overlay" viewBox="0 0 120 50"><ellipse cx="28" cy="38" rx="19" ry="8" fill="#6a1b9a"/><path d="M0,35 Q40,20 80,33 T120,25" stroke="#388e3c" stroke-width="4" fill="none"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SOAL HOTS BIOLOGI -->
+  <div id="quiz-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 id="quiz-title" style="color:#c62828;">⚠️ KONDISI BAHAYA!</h2>
+      <p id="quiz-desc" style="margin: 10px 0; color:#555;">Jawab pertanyaan TKA Biologi SMA berikut untuk menyelamatkan nyawa Anda!</p>
+      <hr>
+      <div id="quiz-question" style="font-weight:bold; margin: 15px 0; font-size:1.05rem;"></div>
+      <div id="quiz-options" class="quiz-options"></div>
+    </div>
+  </div>
+
+  <!-- MODAL PAPAN SKOR -->
+  <div id="leaderboard-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 style="color:#2e7d32; text-align:center;">🏆 Papan Skor Siswa</h2>
+      <div style="max-height: 250px; overflow-y: auto; margin-top: 15px;">
+        <table>
+          <thead>
+            <tr><th>Nama</th><th>Kelas</th><th>Skor</th></tr>
+          </thead>
+          <tbody id="leaderboard-body"></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top: 20px; border-top: 2px dashed #ccc; padding-top: 15px;">
+        <h3>Download Data (GSheet / CSV)</h3>
+        <p style="font-size:0.85rem; color:#666; margin-bottom:10px;">Masukkan token guru (1234) untuk mengunduh nilai.</p>
+        <div style="display:flex; gap:10px;">
+          <input type="password" id="download-token" placeholder="Token" style="padding:8px; border:1px solid #ccc; border-radius:5px; flex:1;">
+          <button class="btn" style="width:auto; margin:0;" onclick="downloadCSV()">Download</button>
+        </div>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:15px;" onclick="closeLeaderboard()">Tutup</button>
+    </div>
+  </div>
+
+  <script>
+    /* AUDIO SYNTHESIZER */
+    const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let bgmInterval = null;
+
+    function initAudio() { if (AudioCtx.state === 'suspended') AudioCtx.resume(); }
+
+    function playHitSound() {
+      initAudio();
+      const osc = AudioCtx.createOscillator(), gain = AudioCtx.createGain();
+      osc.type = 'triangle'; osc.frequency.setValueAtTime(140, AudioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(30, AudioCtx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.8, AudioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, AudioCtx.currentTime + 0.12);
+      osc.connect(gain); gain.connect(AudioCtx.destination);
+      osc.start(); osc.stop(AudioCtx.currentTime + 0.12);
+    }
+
+    function playSqueakSound() {
+      initAudio();
+      const osc = AudioCtx.createOscillator(), gain = AudioCtx.createGain();
+      osc.type = 'sine'; osc.frequency.setValueAtTime(1200, AudioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(2400, AudioCtx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.4, AudioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, AudioCtx.currentTime + 0.16);
+      osc.connect(gain); gain.connect(AudioCtx.destination);
+      osc.start(); osc.stop(AudioCtx.currentTime + 0.16);
+    }
+
+    function playSnakeBiteSound() {
+      initAudio();
+      const osc = AudioCtx.createOscillator(), gain = AudioCtx.createGain();
+      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, AudioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, AudioCtx.currentTime + 0.4);
+      gain.gain.setValueAtTime(0.7, AudioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, AudioCtx.currentTime + 0.4);
+      osc.connect(gain); gain.connect(AudioCtx.destination);
+      osc.start(); osc.stop(AudioCtx.currentTime + 0.4);
+    }
+
+    function playSuccessSound() {
+      initAudio();
+      [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+        const osc = AudioCtx.createOscillator(), gain = AudioCtx.createGain();
+        osc.type = 'sine'; osc.frequency.setValueAtTime(freq, AudioCtx.currentTime + idx * 0.08);
+        gain.gain.setValueAtTime(0.3, AudioCtx.currentTime + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.01, AudioCtx.currentTime + idx * 0.08 + 0.15);
+        osc.connect(gain); gain.connect(AudioCtx.destination);
+        osc.start(AudioCtx.currentTime + idx * 0.08); osc.stop(AudioCtx.currentTime + idx * 0.08 + 0.15);
+      });
+    }
+
+    function startBGM() {
+      initAudio(); stopBGM();
+      const melody = [261.63, 329.63, 392.00, 329.63, 293.66, 349.23, 440.00, 349.23];
+      let noteIdx = 0;
+      bgmInterval = setInterval(() => {
+        const osc = AudioCtx.createOscillator(), gain = AudioCtx.createGain();
+        osc.type = 'square'; osc.frequency.setValueAtTime(melody[noteIdx], AudioCtx.currentTime);
+        gain.gain.setValueAtTime(0.05, AudioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, AudioCtx.currentTime + 0.2);
+        osc.connect(gain); gain.connect(AudioCtx.destination);
+        osc.start(); osc.stop(AudioCtx.currentTime + 0.2);
+        noteIdx = (noteIdx + 1) % melody.length;
+      }, 250);
+    }
+
+    function stopBGM() { if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; } }
+
+    /* BANK SOAL TKA BIOLOGI SMA (10 SOALsesuai dokumen) */
+    const hotsQuestions = [
+      {
+        q: "1. Seorang peneliti mengamati ikan lumba-lumba (Tursiops truncatus) dan ikan hiu (Carcharodon carcharias). Keduanya memiliki bentuk tubuh hidrodinamis dan sirip, namun dikelompokkan ke dalam kelas yang berbeda. Pernyataan yang tepat mengenai takson kedua organisme tersebut adalah...",
+        options: [
+          "A. Lumba-lumba termasuk Chondrichthyes karena bernapas dengan paru-paru, sedangkan hiu termasuk Osteichthyes.",
+          "B. Lumba-lumba termasuk Mammalia karena memiliki kelenjar susu dan homoioterm, sedangkan hiu termasuk Chondrichthyes karena berangka tulang rawan.",
+          "C. Lumba-lumba termasuk Reptilia karena melahirkan anak, sedangkan hiu termasuk Pisces.",
+          "D. Hiu termasuk Mammalia karena memiliki organ reproduksi internal, sedangkan lumba-lumba termasuk Amphibia.",
+          "E. Kedua hewan dikelompokkan dalam kelas yang sama karena mengalami evolusi konvergen."
+        ],
+        answer: 1
+      },
+      {
+        q: "2. Di hutan hujan tropis ditemukan organisme multiseluler, heterotrof, dinding sel tersusun atas zat kitin, tidak memiliki klorofil, serta menyerap nutrisi melalui hifa. Organisme ini dikelompokkan ke dalam kingdom...",
+        options: [
+          "A. Plantae",
+          "B. Protista",
+          "C. Monera",
+          "D. Fungi",
+          "E. Animalia"
+        ],
+        answer: 3
+      },
+      {
+        q: "3. Kus-kus pohon (Ailurops ursinus) dikelompokkan dalam Subkelas Marsupialia, sedangkan Lutung jawa dan Bajing kelapa dikelompokkan dalam Subkelas Placentalia. Alasan taksonomi pemisahan kelompok tersebut adalah...",
+        options: [
+          "A. Kus-kus melahirkan anak yang sudah berkembang sempurna di dalam uterus.",
+          "B. Kus-kus memiliki kantong (marsupium) untuk melengkapi perkembangan embrio yang lahir prematur.",
+          "C. Lutung dan Bajing memiliki suhu tubuh poikiloterm, sedangkan Kus-kus homoioterm.",
+          "D. Kus-kus tidak memiliki kelenjar susu sehingga menyusui anaknya melalui pori kulit.",
+          "E. Bajing dan Lutung memutarkan ibu jari secara berlawanan, sedangkan Kus-kus tidak."
+        ],
+        answer: 1
+      },
+      {
+        q: "4. Dalam sistem penamaan binomial nomenklatur, dua organisme dinyatakan memiliki kekerabatan paling dekat jika...",
+        options: [
+          "A. Memiliki nama penunjuk spesies (epitheton specificum) yang sama.",
+          "B. Memiliki habitat dan peranan ekologis (nisia) yang identik.",
+          "C. Berada dalam tingkatan genus yang sama namun beda spesies.",
+          "D. Memiliki morfologi luar yang mirip akibat konvergensi lingkungan.",
+          "E. Berada dalam ordo yang sama tetapi beda familia."
+        ],
+        answer: 2
+      },
+      {
+        q: "5. Perbedaan struktur dinding sel antara bakteri Gram-positif dan Gram-negatif berpengaruh terhadap sifatnya. Pernyataan yang tepat mengenai struktur dan resistensinya adalah...",
+        options: [
+          "A. Bakteri Gram-positif memiliki lapisan peptidoglikan tipis yang dilapisi membran luar lipopolisakarida.",
+          "B. Bakteri Gram-negatif memiliki lapisan peptidoglikan tebal tanpa membran luar.",
+          "C. Bakteri Gram-negatif memiliki membran luar yang kaya lipopolisakarida serta peptidoglikan tipis, menjadikannya lebih resisten terhadap beberapa jenis antibiotik.",
+          "D. Dinding sel Gram-positif kaya akan asam nikotinat yang menyebabkan warna merah saat diberi Safranin.",
+          "E. Bakteri Gram-positif tidak memiliki peptidoglikan sehingga dikelompokkan ke Archaebacteria."
+        ],
+        answer: 2
+      },
+      {
+        q: "6. Bakteri Nitrosomonas dan Nitrobacter memainkan peranan penting dalam daur nitrogen di tanah. Mekanisme utama kedua bakteri tersebut adalah...",
+        options: [
+          "A. Mengikat gas nitrogen bebas (N2) dari udara menjadi amonia melalui fiksasi.",
+          "B. Mengubah senyawa amonium/amonia menjadi nitrit, lalu nitrit menjadi nitrat (Nitrifikasi) yang dapat diserap tanaman.",
+          "C. Mengubah nitrat kembali menjadi gas nitrogen bebas (Denitrifikasi).",
+          "D. Menguraikan sisa protein makhluk hidup menjadi senyawa asam amino.",
+          "E. Membentuk bintil akar pada tanaman Leguminosae untuk mensintesis asam amino."
+        ],
+        answer: 1
+      },
+      {
+        q: "7. Dalam bidang bioteknologi, mikroorganisme dimanfaatkan secara spesifik. Pasangan yang tepat antara mikroorganisme, produk, dan perannya adalah...",
+        options: [
+          "A. Acetobacter xylinum — Produk: Yoghurt — Peran: Mengubah laktosa menjadi asam laktat.",
+          "B. Rhizopus oryzae — Produk: Tempe — Peran: Membentuk hifa yang mengikat biji kedelai dan menghasilkan enzim protease.",
+          "C. Thiobacillus ferrooxidans — Produk: Nata de coco — Peran: Membentuk lapisan selulosa dari air kelapa.",
+          "D. Lactobacillus bulgaricus — Produk: Bioremediasi — Peran: Memecah tumpahan minyak di laut.",
+          "E. Saccharomyces cerevisiae — Produk: Penisilin — Peran: Menghasilkan zat antibiotik."
+        ],
+        answer: 1
+      },
+      {
+        q: "8. Pada rantai makanan: Fitoplankton -> Zooplankton -> Ikan Kecil -> Ikan Lele -> Burung Bangau. Jika pencemaran pestisida sintetis (DDT) masuk ke kolam, organisme yang menampung konsentrasi akumulasi racun tertinggi akibat biomagnifikasi adalah...",
+        options: [
+          "A. Fitoplankton",
+          "B. Zooplankton",
+          "C. Ikan Kecil",
+          "D. Ikan Lele",
+          "E. Burung Bangau"
+        ],
+        answer: 4
+      },
+      {
+        q: "9. Dalam daur Karbon dan Oksigen, Tumbuhan menyerap CO2 dari atmosfer melalui proses (P) dan mengeluarkannya kembali bersama Hewan lewat proses (Q). Proses P dan Q secara berurutan adalah...",
+        options: [
+          "A. Fotosintesis dan Respirasi seluler",
+          "B. Respirasi dan Transpirasi",
+          "C. Pembakaran dan Evaporasi",
+          "D. Dekomposisi dan Kondensasi",
+          "E. Nitrifikasi dan Denitrifikasi"
+        ],
+        answer: 0
+      },
+      {
+        q: "10. Dalam Daur Nitrogen, proses pengubahan senyawa Nitrit (NO2-) menjadi Nitrat (NO3-) yang siap diserap oleh akar tumbuhan dilakukan oleh bakteri...",
+        options: [
+          "A. Rhizobium leguminosarum",
+          "B. Azotobacter sp.",
+          "C. Nitrosococcus",
+          "D. Nitrobacter",
+          "E. Clostridium pasteurianum"
+        ],
+        answer: 3
+      }
+    ];
+
+    /* GAME STATE */
+    let playerName = "";
+    let playerClass = "";
+    let score = 0;
+    let ratCount = 3;
+    let lives = 3; // 3 NYAWA
+    let hammerSize = 80;
+    let gameTime = 0;
+    let spawnIntervalTime = 1100;
+    let gameTimerLoop = null;
+    let spawnLoopTimeout = null;
+
+    const tikusSVG = `<svg class="svg-char" viewBox="0 0 100 100"><ellipse cx="50" cy="65" rx="36" ry="28" fill="#4a3728"/><circle cx="22" cy="32" r="13" fill="#362519"/><circle cx="22" cy="32" r="7" fill="#ffab91"/><circle cx="78" cy="32" r="13" fill="#362519"/><circle cx="78" cy="32" r="7" fill="#ffab91"/><ellipse cx="50" cy="48" rx="28" ry="22" fill="#5d4037"/><circle cx="36" cy="42" r="4" fill="#000"/><circle cx="64" cy="42" r="4" fill="#000"/><polygon points="50,50 43,58 57,58" fill="#ffab91"/><rect x="46" y="58" width="3" height="7" fill="#fff"/><rect x="51" y="58" width="3" height="7" fill="#fff"/><line x1="15" y1="52" x2="38" y2="53" stroke="#000" stroke-width="2"/><line x1="85" y1="52" x2="62" y2="53" stroke="#000" stroke-width="2"/></svg>`;
+    const ularSVG = `<svg class="svg-char" viewBox="0 0 100 100"><path d="M50,90 Q30,70 50,50 Q70,30 50,15" stroke="#1b4d3e" stroke-width="16" fill="none" stroke-linecap="round"/><ellipse cx="50" cy="30" rx="25" ry="18" fill="#2d7d46"/><circle cx="50" cy="18" r="14" fill="#1b4d3e"/><circle cx="44" cy="15" r="3" fill="#ffeb3b"/><circle cx="56" cy="15" r="3" fill="#ffeb3b"/><circle cx="44" cy="15" r="1.5" fill="#000"/><circle cx="56" cy="15" r="1.5" fill="#000"/><path d="M50,22 L50,30 M47,30 L53,30" stroke="#ff1744" stroke-width="2" fill="none"/></svg>`;
+
+    const hammer = document.getElementById('hammer');
+    document.addEventListener('mousemove', (e) => {
+      hammer.style.left = e.clientX + 'px';
+      hammer.style.top = e.clientY + 'px';
+    });
+
+    document.addEventListener('mousedown', () => {
+      hammer.classList.add('slap');
+      playHitSound();
+    });
+    document.addEventListener('mouseup', () => {
+      hammer.classList.remove('slap');
+    });
+
+    function startGame() {
+      playerName = document.getElementById('player-name').value.trim();
+      playerClass = document.getElementById('player-class').value.trim();
+
+      if (!playerName || !playerClass) {
+        alert("Harap isi Nama dan Kelas terlebih dahulu!");
+        return;
+      }
+
+      score = 0;
+      ratCount = 3;
+      lives = 3;
+      gameTime = 0;
+      spawnIntervalTime = 1100;
+      hammerSize = 80;
+
+      updateHUD();
+      updateHammerSize();
+
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.remove('hidden');
+
+      startBGM();
+
+      gameTimerLoop = setInterval(() => {
+        gameTime++;
+        document.getElementById('timer-text').innerText = `${gameTime}s`;
+        if (gameTime % 5 === 0 && spawnIntervalTime > 400) spawnIntervalTime -= 70;
+      }, 1000);
+
+      spawnRoutine();
+    }
+
+    function updateHUD() {
+      document.getElementById('score-text').innerText = score;
+      document.getElementById('rat-count-text').innerText = ratCount;
+      
+      let hearts = "";
+      for (let i = 0; i < lives; i++) hearts += "❤️";
+      document.getElementById('lives-text').innerText = hearts || "💀";
+    }
+
+    function updateHammerSize() {
+      hammer.setAttribute('width', hammerSize);
+      hammer.setAttribute('height', hammerSize);
+    }
+
+    function spawnRoutine() {
+      let countToSpawn = 1;
+      if (gameTime > 15 && Math.random() < 0.4) countToSpawn = 2;
+      if (gameTime > 30 && Math.random() < 0.6) countToSpawn = 3;
+
+      for (let i = 0; i < countToSpawn; i++) spawnSingleCharacter();
+
+      spawnLoopTimeout = setTimeout(spawnRoutine, spawnIntervalTime);
+    }
+
+    function spawnSingleCharacter() {
+      const holeIdx = Math.floor(Math.random() * 6);
+      const holeEl = document.getElementById(`hole-${holeIdx}`);
+      const containerEl = document.getElementById(`container-${holeIdx}`);
+
+      if (holeEl.classList.contains('up')) return;
+
+      const isUlar = Math.random() < 0.25;
+      holeEl.innerHTML = isUlar ? ularSVG : tikusSVG;
+      holeEl.dataset.type = isUlar ? 'ular' : 'tikus';
+
+      containerEl.classList.add('up');
+      holeEl.classList.add('up');
+
+      const hideDelay = Math.max(600, 1200 - gameTime * 15);
+
+      setTimeout(() => {
+        if (holeEl.classList.contains('up')) {
+          holeEl.classList.remove('up');
+          containerEl.classList.remove('up');
+          if (!isUlar) {
+            ratCount++;
+            updateHUD();
+            checkGameState();
+          }
+        }
+      }, hideDelay);
+    }
+
+    /* PUKUL TIKUS ATAU ULAR */
+    document.querySelectorAll('.character').forEach(charEl => {
+      charEl.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (!this.classList.contains('up')) return;
+
+        const type = this.dataset.type;
+        this.classList.remove('up');
+        this.parentElement.classList.remove('up');
+
+        if (type === 'tikus') {
+          playSqueakSound();
+          score += 10;
+          if (ratCount > 1) ratCount--;
+
+          if (score % 50 === 0 && hammerSize < 160) {
+            hammerSize += 15;
+            updateHammerSize();
+          }
+          updateHUD();
+        } else if (type === 'ular') {
+          playSnakeBiteSound();
+          triggerQuiz("🐍 TERPATUK ULAR KOBRA!", "Anda memukul ular kobra. Jawab soal Biologi dengan benar untuk menyelamatkan nyawa!");
+        }
+      });
+    });
+
+    function checkGameState() {
+      if (ratCount > 7) {
+        triggerQuiz("⚠️ POPULASI TIKUS MELEDAK (>7)!", "Sawah diserbu tikus wirog. Jawab pertanyaan Biologi untuk membasmi hama dan menyelamatkan nyawa!");
+      }
+    }
+
+    function triggerQuiz(title, desc) {
+      clearTimeout(spawnLoopTimeout);
+      clearInterval(gameTimerLoop);
+      stopBGM();
+
+      document.getElementById('quiz-title').innerText = title;
+      document.getElementById('quiz-desc').innerText = desc;
+
+      const qData = hotsQuestions[Math.floor(Math.random() * hotsQuestions.length)];
+      document.getElementById('quiz-question').innerText = qData.q;
+      const optsContainer = document.getElementById('quiz-options');
+      optsContainer.innerHTML = '';
+
+      qData.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = opt;
+        btn.onclick = () => {
+          document.getElementById('quiz-modal').classList.add('hidden');
+          if (idx === qData.answer) {
+            playSuccessSound();
+            alert("BENAR! Kesempatan nyawa berhasil diselamatkan dan populasi tikus kembali terkendali.");
+            ratCount = 3; // Reset populasi tikus
+            updateHUD();
+            startBGM();
+            gameTimerLoop = setInterval(() => { gameTime++; }, 1000);
+            spawnRoutine();
+          } else {
+            playSnakeBiteSound();
+            lives--;
+            updateHUD();
+            
+            if (lives > 0) {
+              alert(`JAWABAN SALAH! Nyawa berkurang 1. Sisa Nyawa: ${lives}`);
+              ratCount = 3;
+              startBGM();
+              gameTimerLoop = setInterval(() => { gameTime++; }, 1000);
+              spawnRoutine();
+            } else {
+              gameOver("Game Over! Semua nyawa Anda telah habis.");
+            }
+          }
+        };
+        optsContainer.appendChild(btn);
+      });
+
+      document.getElementById('quiz-modal').classList.remove('hidden');
+    }
+
+    function gameOver(reason) {
+      clearTimeout(spawnLoopTimeout);
+      clearInterval(gameTimerLoop);
+      stopBGM();
+
+      alert(`${reason}\n\nTotal Skor: ${score}\nWaktu Bertahan: ${gameTime} Detik`);
+      saveScore(playerName, playerClass, score);
+
+      document.getElementById('game-screen').classList.add('hidden');
+      document.getElementById('start-screen').classList.remove('hidden');
+    }
+
+    function saveScore(name, pClass, score) {
+      let scores = JSON.parse(localStorage.getItem('wirog_scores') || '[]');
+      scores.push({ name, class: pClass, score });
+      scores.sort((a, b) => b.score - a.score);
+      localStorage.setItem('wirog_scores', JSON.stringify(scores));
+    }
+
+    function showLeaderboard() {
+      const tbody = document.getElementById('leaderboard-body');
+      tbody.innerHTML = '';
+      let scores = JSON.parse(localStorage.getItem('wirog_scores') || '[]');
+      scores.forEach(s => {
+        tbody.innerHTML += `<tr><td>${s.name}</td><td>${s.class}</td><td><b>${s.score}</b></td></tr>`;
+      });
+      document.getElementById('leaderboard-modal').classList.remove('hidden');
+    }
+
+    function closeLeaderboard() {
+      document.getElementById('leaderboard-modal').classList.add('hidden');
+    }
+
+    function downloadCSV() {
+      if (document.getElementById('download-token').value !== "1234") {
+        alert("Token Salah! Gunakan token 1234.");
+        return;
+      }
+      let scores = JSON.parse(localStorage.getItem('wirog_scores') || '[]');
+      let csv = "Nama,Kelas,Skor\n" + scores.map(s => `"${s.name}","${s.class}",${s.score}`).join("\n");
+      const a = document.createElement('a');
+      a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+      a.download = 'Papan_Skor_Tikus_Wirog.csv';
+      a.click();
+    }
+  </script>
+</body>
+</html>
