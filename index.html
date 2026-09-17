@@ -65,7 +65,7 @@
     .card {
       background: rgba(255, 255, 255, 0.95);
       color: #2e7d32;
-      padding: 30px 40px;
+      padding: 25px 35px;
       border-radius: 25px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.6);
       width: 90%;
@@ -82,23 +82,24 @@
     }
 
     .form-group {
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       text-align: left;
     }
 
     .form-group label {
       display: block;
       font-weight: bold;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
       color: #333;
+      font-size: 0.95rem;
     }
 
     .form-group input {
       width: 100%;
-      padding: 12px;
+      padding: 10px 12px;
       border: 2px solid #a5d6a7;
       border-radius: 10px;
-      font-size: 1rem;
+      font-size: 0.95rem;
       outline: none;
     }
 
@@ -278,10 +279,15 @@
   <div id="start-screen" class="screen">
     <div class="card">
       <h1>TIKUS WIROG</h1>
-      <p style="margin-bottom: 20px; color: #555; font-weight: bold;">Game Kebun Ubi Jalar - 30 Soal TKA Biologi SMA</p>
+      <p style="margin-bottom: 15px; color: #555; font-weight: bold;">Game Kebun Ubi Jalar - TKA Biologi SMA</p>
       
       <div class="form-group">
-        <label>Nama Siswa:</label>
+        <label>No. Urut Presensi:</label>
+        <input type="number" id="player-no" placeholder="Contoh: 05" min="1" max="60" required>
+      </div>
+
+      <div class="form-group">
+        <label>Nama Lengkap Siswa:</label>
         <input type="text" id="player-name" placeholder="Masukkan nama" required>
       </div>
       
@@ -351,7 +357,7 @@
       <div style="max-height: 250px; overflow-y: auto; margin-top: 15px;">
         <table>
           <thead>
-            <tr><th>Nama</th><th>Kelas</th><th>Skor</th></tr>
+            <tr><th>No. Urut</th><th>Nama</th><th>Kelas</th><th>Skor</th></tr>
           </thead>
           <tbody id="leaderboard-body"></tbody>
         </table>
@@ -661,7 +667,7 @@
         options: [
           "A. Alkohol / Ethanol",
           "B. Antibiotik Penisilin",
-          "C. Biogas MEtana",
+          "C. Biogas Metana",
           "D. Enzim Rennet",
           "E. Hormon Insulin"
         ],
@@ -769,6 +775,7 @@
     ];
 
     /* GAME STATE */
+    let playerNo = "";
     let playerName = "";
     let playerClass = "";
     let score = 0;
@@ -798,11 +805,12 @@
     });
 
     function startGame() {
+      playerNo = document.getElementById('player-no').value.trim();
       playerName = document.getElementById('player-name').value.trim();
       playerClass = document.getElementById('player-class').value.trim();
 
-      if (!playerName || !playerClass) {
-        alert("Harap isi Nama dan Kelas terlebih dahulu!");
+      if (!playerNo || !playerName || !playerClass) {
+        alert("Harap isi No. Urut, Nama, dan Kelas terlebih dahulu!");
         return;
       }
 
@@ -971,15 +979,15 @@
       stopBGM();
 
       alert(`${reason}\n\nTotal Skor: ${score}\nWaktu Bertahan: ${gameTime} Detik`);
-      saveScore(playerName, playerClass, score);
+      saveScore(playerNo, playerName, playerClass, score);
 
       document.getElementById('game-screen').classList.add('hidden');
       document.getElementById('start-screen').classList.remove('hidden');
     }
 
-    function saveScore(name, pClass, score) {
+    function saveScore(no, name, pClass, score) {
       let scores = JSON.parse(localStorage.getItem('wirog_scores') || '[]');
-      scores.push({ name, class: pClass, score });
+      scores.push({ no, name, class: pClass, score });
       scores.sort((a, b) => b.score - a.score);
       localStorage.setItem('wirog_scores', JSON.stringify(scores));
     }
@@ -989,7 +997,7 @@
       tbody.innerHTML = '';
       let scores = JSON.parse(localStorage.getItem('wirog_scores') || '[]');
       scores.forEach(s => {
-        tbody.innerHTML += `<tr><td>${s.name}</td><td>${s.class}</td><td><b>${s.score}</b></td></tr>`;
+        tbody.innerHTML += `<tr><td>${s.no || '-'}</td><td>${s.name}</td><td>${s.class}</td><td><b>${s.score}</b></td></tr>`;
       });
       document.getElementById('leaderboard-modal').classList.remove('hidden');
     }
@@ -1004,7 +1012,7 @@
         return;
       }
       let scores = JSON.parse(localStorage.getItem('wirog_scores') || '[]');
-      let csv = "Nama,Kelas,Skor\n" + scores.map(s => `"${s.name}","${s.class}",${s.score}`).join("\n");
+      let csv = "No. Urut,Nama,Kelas,Skor\n" + scores.map(s => `"${s.no || '-'}","${s.name}","${s.class}",${s.score}`).join("\n");
       const a = document.createElement('a');
       a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
       a.download = 'Papan_Skor_Tikus_Wirog.csv';
